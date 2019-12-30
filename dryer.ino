@@ -1,5 +1,4 @@
-#define DEBUG 0
-#define dbg_print(str) if (DEBUG) Serial.println(str);
+#include "globals.h"
 
 void setup() {
     Serial.begin(9600);
