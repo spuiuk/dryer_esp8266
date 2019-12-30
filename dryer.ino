@@ -6,5 +6,5 @@ void setup() {
 }
 
 void loop() {
-    sleep(1000);
+    delay(1000);
 }
