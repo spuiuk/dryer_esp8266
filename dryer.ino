@@ -14,6 +14,8 @@ bool shouldSaveConfig = false;
 
 bool readConfigFile(void)
 {
+    dbg_print("Called readConfigFile")
+
     File configFile = SPIFFS.open("/config.json", "r");
     if (!configFile) {
         Serial.println("Failed to read config");
@@ -33,7 +35,7 @@ bool readConfigFile(void)
     }
 
     /* Copy your parameter value from json */
-    /* strcpy(token, json["token"]); */
+    /* strcpy(token, doc["token"]); */
 
     configFile.close();
     return true;
@@ -43,8 +45,10 @@ bool saveConfigFile(void)
 {
     StaticJsonDocument<512> doc;
 
+    dbg_print("Called saveConfigFile")
+
     /* Copy over parameters to json object */
-    /* doc[token] = token; */
+    /* doc["token"] = token; */
 
     File configFile = SPIFFS.open("/config.json", "w");
     if(!configFile) {
@@ -71,7 +75,8 @@ void setup() {
     delay(1000);
     Serial.println("Starting!");
 
-    Serial.println("Waiting 3 seconds - Press flash button(GPIO0) to reset settings");
+    Serial.println("Waiting 3 seconds");
+    Serial.println("Press and hold flash button(GPIO 0) to reset settings");
     delay(3000);
     pinMode(0, INPUT);
     if (digitalRead(0) == LOW) {
@@ -91,22 +96,27 @@ void setup() {
     }
 
     /* Add custom parameters here */
-    /* WiFiManagerParameter custom_token("Token", token, 40); */
+    /* WiFiManagerParameter custom_token("token", "Token", token, 40); */
+
+    /* Add customer parameter objects to WiFiManager */
+    /* wm.addParameter(&custom_token); */
 
     wm.setSaveConfigCallback(saveConfigCallback);
     if (!wm.autoConnect()) {
         dbg_print("Timed out waiting for Wifi. Putting to sleep");
         ESP.reset();
         delay(1000);
+        return;
     }
 
-    /* Add customer parameter objects to WiFiManager */
-    /* wm.addParameter(&custom_token); */
+    if (shouldSaveConfig) {
+        /* Copy over updated parameters */
+        /* strcpy(token, custom_token.getValue()); */
 
-    if (shouldSaveConfig && !saveConfigFile()) {
-        Serial.println("Could not save config file");
-        delay(10000);
-        return;
+        if (!saveConfigFile()) {
+            Serial.println("Could not save config file");
+            return;
+        }
     }
 
     dbg_print("Connected to Wifi");
