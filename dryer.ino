@@ -4,13 +4,57 @@
 #include <DNSServer.h>
 #include <WiFiManager.h>
 #include <ArduinoJson.h>
+#include <string.h>
+#include <WiFiClient.h>
 
 #include "globals.h"
 
 bool shouldSaveConfig = false;
 
+const char *pbHost = "api.pushingbox.com";
+const int  pbPort = 80;
+
 /* add default values for your parameters here */
 /* char token[34] = "YourSecurityToken"; */
+char pushingBoxDeviceId[20] = "";
+
+bool pbSendNotification(char *str)
+{
+    WiFiClient client;
+
+    dbg_print("Send Notification: Attempting connect");
+    if(!client.connect(pbHost, pbPort)) {
+        Serial.println("Could not connect to Pushing Box server");
+        return false;
+    }
+
+    if (strlen(pushingBoxDeviceId) == 0) {
+        Serial.println("Pushing box device Id not set");
+        return false;
+    }
+
+    if (client.connected()) {
+        dbg_print("Connected");
+    } else {
+        dbg_print("Not connected");
+    }
+
+    String postStr = "devid=" + String(pushingBoxDeviceId) + "&";
+    postStr += "action=" + String(str);
+
+    client.print("POST /pushingbox HTTP/1.1\n");
+    client.print("Host: api.pushingbox.com\n");
+    client.print("Connection: close\n");
+    client.print("Content-Type: application/x-www-form-urlencoded\n");
+    client.print("Content-Length: ");
+    client.print(postStr.length());
+    client.print("\n\n");
+    client.print(postStr);
+    client.flush();
+    client.stop();
+
+    dbg_print("Sent message");
+}
 
 bool readConfigFile(void)
 {
@@ -36,6 +80,7 @@ bool readConfigFile(void)
 
     /* Copy your parameter value from json */
     /* strcpy(token, doc["token"]); */
+    strcpy(pushingBoxDeviceId, doc["pushingBoxDeviceId"]);
 
     configFile.close();
     return true;
@@ -48,7 +93,9 @@ bool saveConfigFile(void)
     dbg_print("Called saveConfigFile")
 
     /* Copy over parameters to json object */
-    /* doc["token"] = token; */
+    /* doc[token] = token; */
+    doc["pushingBoxDeviceId"] = pushingBoxDeviceId;
+    Serial.println("Pushing box id" + String(pushingBoxDeviceId));
 
     File configFile = SPIFFS.open("/config.json", "w");
     if(!configFile) {
@@ -97,9 +144,13 @@ void setup() {
 
     /* Add custom parameters here */
     /* WiFiManagerParameter custom_token("token", "Token", token, 40); */
+    WiFiManagerParameter custom_pushingBoxDeviceId("pushingBoxDeviceId",
+                                                    "Pushing Box DeviceId",
+                                                    pushingBoxDeviceId, 20);
 
     /* Add customer parameter objects to WiFiManager */
     /* wm.addParameter(&custom_token); */
+    wm.addParameter(&custom_pushingBoxDeviceId);
 
     wm.setSaveConfigCallback(saveConfigCallback);
     if (!wm.autoConnect()) {
@@ -113,6 +164,8 @@ void setup() {
         /* Copy over updated parameters */
         /* strcpy(token, custom_token.getValue()); */
 
+        strcpy(pushingBoxDeviceId, custom_pushingBoxDeviceId.getValue());
+
         if (!saveConfigFile()) {
             Serial.println("Could not save config file");
             return;
@@ -120,6 +173,8 @@ void setup() {
     }
 
     dbg_print("Connected to Wifi");
+
+    pbSendNotification("Device Initialised");
 }
 
 void loop() {
