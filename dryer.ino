@@ -9,10 +9,17 @@
 
 #include "globals.h"
 
+/* Number of seconds before a sample */
+#define MSECS_PER_TICK 1000
+/* Number of samples for state change */
+#define STATE_CHANGE_WAIT 15
+
 bool shouldSaveConfig = false;
 
 const char *pbHost = "api.pushingbox.com";
 const int  pbPort = 80;
+
+const int vibrPin = 14;
 
 /* add default values for your parameters here */
 /* char token[34] = "YourSecurityToken"; */
@@ -175,8 +182,54 @@ void setup() {
     dbg_print("Connected to Wifi");
 
     pbSendNotification("Device Initialised");
+    pinMode(vibrPin, INPUT);
+}
+
+void sendActionNotification(int state)
+{
+    if (state == HIGH) {
+        dbg_print("Dryer Started");
+        pbSendNotification("Dryer Started");
+    } else {
+        dbg_print("Dryer Stopped");
+        pbSendNotification("Dryer Stopped");
+    }
+
+}
+
+bool readVibrations100ms()
+{
+    int vibrations = 0;
+    int start_ms = millis();
+    while((millis() - start_ms) < 100) {
+        vibrations += digitalRead(vibrPin);
+    }
+
+    return (vibrations);
+}
+
+void checkVibration()
+{
+    static int state = LOW;
+    static int state_count = 0;
+    int tstate;
+
+    tstate = readVibrations100ms();
+    dbg_print(tstate);
+    if (tstate == state) {
+        state_count = 0;
+        return;
+    }
+
+    state_count++;
+    if (state_count >= STATE_CHANGE_WAIT) {
+        state = tstate;
+        state_count = 0;
+        sendActionNotification(state);
+    }
 }
 
 void loop() {
-    delay(10000);
+    delay(MSECS_PER_TICK);
+    checkVibration();
 }
