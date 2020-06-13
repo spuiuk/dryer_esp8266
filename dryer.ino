@@ -202,7 +202,8 @@ bool readVibrations100ms()
     int vibrations = 0;
     int start_ms = millis();
     while((millis() - start_ms) < 100) {
-        vibrations += digitalRead(vibrPin);
+        if (digitalRead(vibrPin) == HIGH)
+            vibrations++;
     }
 
     return (vibrations);
@@ -233,3 +234,4 @@ void loop() {
     delay(MSECS_PER_TICK);
     checkVibration();
 }
+
