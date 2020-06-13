@@ -29,17 +29,16 @@ bool pbSendNotification(char *str)
 {
     WiFiClient client;
 
+    if (strlen(pushingBoxDeviceId) == 0) {
+        dbg_print("Pushing box device Id not set");
+        return false;
+    }
+
     dbg_print("Send Notification: Attempting connect");
     if(!client.connect(pbHost, pbPort)) {
         Serial.println("Could not connect to Pushing Box server");
         return false;
     }
-
-    if (strlen(pushingBoxDeviceId) == 0) {
-        Serial.println("Pushing box device Id not set");
-        return false;
-    }
-
     if (client.connected()) {
         dbg_print("Connected");
     } else {
