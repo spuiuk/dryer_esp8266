@@ -212,20 +212,20 @@ bool readVibrations100ms()
 void checkVibration()
 {
     static int state = LOW;
-    static int state_count = 0;
+    static int state_change_count = 0;
     int tstate;
 
     tstate = readVibrations100ms();
     dbg_print(tstate);
     if (tstate == state) {
-        state_count = 0;
+        state_change_count = 0;
         return;
     }
 
-    state_count++;
-    if (state_count >= STATE_CHANGE_WAIT) {
+    state_change_count++;
+    if (state_change_count >= STATE_CHANGE_WAIT) {
         state = tstate;
-        state_count = 0;
+        state_change_count = 0;
         sendActionNotification(state);
     }
 }
